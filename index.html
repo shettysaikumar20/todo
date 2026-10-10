@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f4ef">
+  <title>Daymark — a quieter kind of to-do list</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f5f4ef;
+      --panel: #fffefa;
+      --ink: #252b27;
+      --muted: #858981;
+      --line: #e7e6df;
+      --accent: #d75338;
+      --accent-dark: #b73f29;
+      --leaf: #557b61;
+      --soft-leaf: #e8efe7;
+      --soft-red: #f8e8e2;
+      --butter: #eee9ce;
+      --shadow: 0 18px 55px rgb(37 43 39 / 8%);
+    }
+
+    * { box-sizing: border-box; }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .app-shell {
+      width: min(1120px, calc(100% - 64px));
+      min-height: min(760px, calc(100vh - 64px));
+      margin: 32px auto;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid #e9e8e1;
+      border-radius: 5px;
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      padding: 34px 24px 22px;
+      background-color: #eeeee7;
+      border-right: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin: 0 0 60px 4px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 23px;
+      font-weight: 700;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      color: var(--panel);
+      background: var(--accent);
+      border-radius: 50% 50% 50% 8px;
+      font-family: sans-serif;
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .nav-label {
+      margin: 0 0 12px 10px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .nav-list { display: grid; gap: 5px; }
+
+    .nav-button {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 11px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      text-align: left;
+      border: 0;
+      border-radius: 3px;
+      background: transparent;
+      color: #62675f;
+      cursor: pointer;
+      transition: color 140ms ease, background 140ms ease;
+    }
+
+    .nav-button:hover { background: rgb(255 255 255 / 58%); color: var(--ink); }
+    .nav-button[aria-current="page"] { background: var(--panel); color: var(--ink); }
+
+    .nav-icon {
+      width: 18px;
+      color: #777d73;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    .nav-button[aria-current="page"] .nav-icon { color: var(--accent); }
+
+    .nav-count {
+      margin-left: auto;
+      color: #959990;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sidebar-note {
+      margin-top: auto;
+      padding: 17px 16px;
+      background: var(--butter);
+      border-radius: 3px;
+    }
+
+    .note-mark {
+      width: 24px;
+      height: 24px;
+      margin-bottom: 12px;
+      display: grid;
+      place-items: center;
+      background: rgb(255 255 255 / 65%);
+      border-radius: 50%;
+      color: var(--leaf);
+      font-size: 14px;
+    }
+
+    .sidebar-note p {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .note-caption {
+      margin-top: 8px;
+      color: #787a6c;
+      font-size: 10px;
+    }
+
+    .sidebar-footer {
+      padding: 19px 4px 0;
+      color: #94978f;
+      font-size: 10px;
+    }
+
+    .main-panel {
+      width: min(100%, 760px);
+      min-width: 0;
+      margin: 0 auto;
+      padding: 64px clamp(28px, 7vw, 82px) 42px;
+    }
+
+    .date-line {
+      margin-bottom: 12px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(36px, 5vw, 50px);
+      font-weight: 400;
+      line-height: 1.05;
+    }
+
+    .subtitle {
+      margin: 11px 0 34px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .composer {
+      min-height: 55px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 6px 7px 6px 17px;
+      background: #fff;
+      border: 1px solid #dedfd8;
+      border-radius: 3px;
+      box-shadow: 0 3px 10px rgb(37 43 39 / 3%);
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .composer:focus-within {
+      border-color: #c3c7bd;
+      box-shadow: 0 0 0 3px rgb(85 123 97 / 10%);
+    }
+
+    .composer-plus { color: var(--accent); font-size: 20px; line-height: 1; }
+
+    .composer input {
+      width: 100%;
+      min-width: 0;
+      padding: 9px 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .composer input::placeholder { color: #a3a69d; }
+
+    .add-button {
+      flex: 0 0 auto;
+      min-height: 39px;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 2px;
+      background: var(--accent);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 140ms ease, transform 140ms ease;
+    }
+
+    .add-button:hover { background: var(--accent-dark); }
+    .add-button:active { transform: translateY(1px); }
+
+    .list-toolbar {
+      min-height: 58px;
+      margin-top: 29px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .list-title {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .clear-button {
+      padding: 7px 0 7px 8px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .clear-button:hover { color: var(--accent); }
+    .clear-button:disabled { display: none; }
+
+    .task-list { margin: 0; padding: 0; list-style: none; }
+
+    .task-row {
+      min-height: 61px;
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) 34px;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      animation: arrive 180ms ease both;
+    }
+
+    @keyframes arrive {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .check-button {
+      width: 21px;
+      height: 21px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid #c9cdc4;
+      border-radius: 50%;
+      background: transparent;
+      color: white;
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease;
+    }
+
+    .check-button:hover { border-color: var(--leaf); }
+    .check-button[aria-pressed="true"] { border-color: var(--leaf); background: var(--leaf); }
+    .check-button span { font-size: 12px; line-height: 1; }
+
+    .task-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .task-row.is-complete .task-text { color: #969a92; text-decoration: line-through; }
+
+    .delete-button {
+      width: 30px;
+      height: 30px;
+      justify-self: end;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #a0a39b;
+      font-size: 19px;
+      line-height: 1;
+      opacity: 0;
+      cursor: pointer;
+      transition: opacity 140ms ease, color 140ms ease, background 140ms ease;
+    }
+
+    .task-row:hover .delete-button,
+    .task-row:focus-within .delete-button { opacity: 1; }
+    .delete-button:hover { background: var(--soft-red); color: var(--accent); }
+
+    .empty-state {
+      padding: 66px 20px 58px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-mark {
+      width: 49px;
+      height: 49px;
+      margin: 0 auto 17px;
+      display: grid;
+      place-items: center;
+      background: var(--soft-leaf);
+      border-radius: 50% 50% 50% 12px;
+      color: var(--leaf);
+      font-size: 20px;
+    }
+
+    .empty-state h2 {
+      margin: 0 0 7px;
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 19px;
+      font-weight: 400;
+    }
+
+    .empty-state p { margin: 0; font-size: 12px; }
+
+    .list-footer {
+      padding-top: 17px;
+      color: #92968d;
+      font-size: 10px;
+    }
+
+    button:focus-visible, input:focus-visible {
+      outline: 2px solid var(--leaf);
+      outline-offset: 3px;
+    }
+
+    @media (max-width: 700px) {
+      .app-shell {
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        grid-template-columns: 1fr;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .sidebar {
+        padding: 18px 20px 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand { margin: 0 0 17px 2px; font-size: 21px; }
+      .brand-mark { width: 25px; height: 25px; }
+      .nav-label, .sidebar-note, .sidebar-footer { display: none; }
+      .nav-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+
+      .nav-button {
+        min-height: 38px;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 6px;
+        font-size: 11px;
+      }
+
+      .nav-icon { width: auto; font-size: 14px; }
+      .nav-count { margin-left: 0; font-size: 10px; }
+
+      .main-panel { padding: 40px 23px 32px; }
+      .subtitle { margin-bottom: 27px; }
+      .list-toolbar { margin-top: 21px; }
+      .task-row { min-height: 58px; }
+      .delete-button { opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Task navigation">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✓</span>daymark</div>
+      <p class="nav-label">Your list</p>
+      <nav class="nav-list" aria-label="Filter tasks">
+        <button class="nav-button" type="button" data-filter="all" aria-current="page">
+          <span class="nav-icon" aria-hidden="true">◷</span><span>Everything</span><span class="nav-count" data-count="all">0</span>
+        </button>
+        <button class="nav-button" type="button" data-filter="active">
+          <span class="nav-icon" aria-hidden="true">○</span><span>In progress</span><span class="nav-count" data-count="active">0</span>
+        </button>
+        <button class="nav-button" type="button" data-filter="completed">
+          <span class="nav-icon" aria-hidden="true">✓</span><span>Completed</span><span class="nav-count" data-count="completed">0</span>
+        </button>
+      </nav>
+      <div class="sidebar-note">
+        <span class="note-mark" aria-hidden="true">✳</span>
+        <p>Small steps still move you forward.</p>
+        <div class="note-caption">A little reminder for today</div>
+      </div>
+      <div class="sidebar-footer">Your list stays on this device.</div>
+    </aside>
+
+    <main class="main-panel">
+      <div class="date-line" id="today-label"></div>
+      <h1 id="page-title">A clear mind<br>a simple list.</h1>
+      <p class="subtitle" id="page-subtitle">Make room for what matters today.</p>
+
+      <form class="composer" id="task-form">
+        <span class="composer-plus" aria-hidden="true">+</span>
+        <label for="task-input" class="visually-hidden">Add a task</label>
+        <input id="task-input" name="task" type="text" maxlength="240" placeholder="What needs doing?" autocomplete="off" required>
+        <button class="add-button" type="submit">Add task</button>
+      </form>
+
+      <section aria-labelledby="list-heading">
+        <div class="list-toolbar">
+          <h2 class="list-title" id="list-heading">Your tasks</h2>
+          <button class="clear-button" id="clear-completed" type="button">Clear completed</button>
+        </div>
+        <ul class="task-list" id="task-list" aria-live="polite"></ul>
+        <div class="empty-state" id="empty-state" hidden>
+          <div class="empty-mark" aria-hidden="true">✓</div>
+          <h2 id="empty-title">A fresh start.</h2>
+          <p id="empty-copy">Add a task above and take it one step at a time.</p>
+        </div>
+        <div class="list-footer" id="list-footer"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "daymark.tasks.v1";
+      const taskForm = document.querySelector("#task-form");
+      const taskInput = document.querySelector("#task-input");
+      const taskList = document.querySelector("#task-list");
+      const emptyState = document.querySelector("#empty-state");
+      const clearCompletedButton = document.querySelector("#clear-completed");
+      const listHeading = document.querySelector("#list-heading");
+      const listFooter = document.querySelector("#list-footer");
+      const navButtons = [...document.querySelectorAll(".nav-button")];
+      const pageTitle = document.querySelector("#page-title");
+      const pageSubtitle = document.querySelector("#page-subtitle");
+      const emptyTitle = document.querySelector("#empty-title");
+      const emptyCopy = document.querySelector("#empty-copy");
+      let filter = "all";
+      let tasks = loadTasks();
+
+      function loadTasks() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          if (!Array.isArray(saved)) return [];
+          return saved.filter(task =>
+            task && typeof task.id === "string" && typeof task.text === "string" &&
+            typeof task.completed === "boolean"
+          );
+        } catch {
+          return [];
+        }
+      }
+
+      function saveTasks() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        } catch {
+          listFooter.textContent = "Storage is unavailable in this browser session.";
+        }
+      }
+
+      function updateHeading() {
+        const headings = {
+          all: ["A clear mind<br>a simple list.", "Make room for what matters today."],
+          active: ["One thing<br>at a time.", "Keep your attention on what’s still ahead."],
+          completed: ["Look how far<br>you’ve come.", "Every finished task is progress worth noticing."]
+        };
+        pageTitle.innerHTML = headings[filter][0];
+        pageSubtitle.textContent = headings[filter][1];
+        listHeading.textContent = { all: "Your tasks", active: "In progress", completed: "Completed" }[filter];
+      }
+
+      function makeTaskRow(task) {
+        const row = document.createElement("li");
+        row.className = `task-row${task.completed ? " is-complete" : ""}`;
+
+        const check = document.createElement("button");
+        check.className = "check-button";
+        check.type = "button";
+        check.setAttribute("aria-label", task.completed ? `Mark ${task.text} as in progress` : `Complete ${task.text}`);
+        check.setAttribute("aria-pressed", String(task.completed));
+        if (task.completed) {
+          const tick = document.createElement("span");
+          tick.setAttribute("aria-hidden", "true");
+          tick.textContent = "✓";
+          check.append(tick);
+        }
+        check.addEventListener("click", () => {
+          tasks = tasks.map(item => item.id === task.id ? { ...item, completed: !item.completed } : item);
+          saveTasks();
+          render();
+        });
+
+        const text = document.createElement("span");
+        text.className = "task-text";
+        text.textContent = task.text;
+
+        const remove = document.createElement("button");
+        remove.className = "delete-button";
+        remove.type = "button";
+        remove.setAttribute("aria-label", `Delete ${task.text}`);
+        remove.title = "Delete task";
+        remove.textContent = "×";
+        remove.addEventListener("click", () => {
+          tasks = tasks.filter(item => item.id !== task.id);
+          saveTasks();
+          render();
+        });
+
+        row.append(check, text, remove);
+        return row;
+      }
+
+      function render() {
+        const activeCount = tasks.filter(task => !task.completed).length;
+        const completedCount = tasks.length - activeCount;
+        const visibleTasks = tasks.filter(task => {
+          if (filter === "active") return !task.completed;
+          if (filter === "completed") return task.completed;
+          return true;
+        });
+
+        document.querySelector('[data-count="all"]').textContent = tasks.length;
+        document.querySelector('[data-count="active"]').textContent = activeCount;
+        document.querySelector('[data-count="completed"]').textContent = completedCount;
+        navButtons.forEach(button => {
+          if (button.dataset.filter === filter) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+
+        taskList.replaceChildren(...visibleTasks.map(makeTaskRow));
+        const isEmpty = visibleTasks.length === 0;
+        taskList.hidden = isEmpty;
+        emptyState.hidden = !isEmpty;
+        clearCompletedButton.disabled = completedCount === 0;
+
+        if (filter === "active") {
+          emptyTitle.textContent = "Nothing waiting.";
+          emptyCopy.textContent = "You’re all caught up. Enjoy the breathing room.";
+        } else if (filter === "completed") {
+          emptyTitle.textContent = "Not checked off yet.";
+          emptyCopy.textContent = "Finished tasks will find their way here.";
+        } else {
+          emptyTitle.textContent = "A fresh start.";
+          emptyCopy.textContent = "Add a task above and take it one step at a time.";
+        }
+
+        listFooter.textContent = activeCount === 1 ? "1 task left to do" : `${activeCount} tasks left to do`;
+        updateHeading();
+      }
+
+      taskForm.addEventListener("submit", event => {
+        event.preventDefault();
+        const text = taskInput.value.trim();
+        if (!text) return;
+        tasks.unshift({ id: crypto.randomUUID(), text, completed: false });
+        saveTasks();
+        filter = "all";
+        taskInput.value = "";
+        render();
+        taskInput.focus();
+      });
+
+      navButtons.forEach(button => {
+        button.addEventListener("click", () => {
+          filter = button.dataset.filter;
+          render();
+        });
+      });
+
+      clearCompletedButton.addEventListener("click", () => {
+        tasks = tasks.filter(task => !task.completed);
+        saveTasks();
+        render();
+      });
+
+      document.querySelector("#today-label").textContent = new Intl.DateTimeFormat(undefined, {
+        weekday: "long", month: "long", day: "numeric"
+      }).format(new Date());
+      render();
+    })();
+  </script>
+</body>
+</html>
